@@ -1,69 +1,99 @@
 # Haan's part: Fair Rent Check + Compare Towns
 
-The project is split so we never edit the same files.
+## Deadlines
+
+| When | What |
+|---|---|
+| **First draft, Nov 16** | Steps 1 to 3 below: get set up, then build and merge **version 1 of Fair Rent Check** (form + simple rating + saved to the database). |
+| **Final, Dec 8** | The rest of Fair Rent Check (similar places + the AI price model), all of Compare Towns, and tests for both. |
+
+The assignment says every team member has to apply the technical skills themselves, and the grader can see who made each commit. So your commits need to be in the repo for the first draft.
+
+## Who owns what
+
+We each edit different folders so we never overwrite each other.
 
 | Who | Owns | Folders |
 |---|---|---|
-| Connor | Shared base, town page, data import, JSON API, login, past lease form | `rentcheck/`, `core/`, `towns/`, `leases/`, `templates/`, `static/` |
-| Haan | Fair Rent Check page (with the AI feature), Compare Towns page | `checks/`, `compare/` |
+| Connor | Shared base, town pages, data, JSON API, login, past lease form, Listing Reader (AI) | `rentcheck/`, `core/`, `towns/`, `leases/`, `reader/`, `templates/`, `static/` |
+| Haan | Fair Rent Check (with the AI price model), Compare Towns | `checks/`, `compare/` |
 
-Both your apps are already registered in settings, have URLs (`/check/` and `/compare/`), and show a "Coming soon" page. The nav bar already links to them. You only need to fill them in.
+Your two apps are already set up. They're in settings, have URLs (`/check/` and `/compare/`), are in the nav bar, and show a "Coming soon" page. You just fill them in.
 
-## Rules so we don't break each other
+## Step 1: Get set up
 
-1. Only edit files inside `checks/` and `compare/`.
-2. Work on your own branch, for example `haan/checks` and `haan/compare`. Merge to `main` through a pull request.
-3. Read data through these helper functions. Don't write to Connor's tables.
-4. If you need a new field on `Town`, `RentPoint`, or `LeaseReport`, text Connor first.
-5. Your pages extend `base.html` like this:
-   ```django
-   {% extends "base.html" %}
-   {% block title %}Fair Rent Check{% endblock %}
-   {% block content %} ... {% endblock %}
+1. Send Connor your GitHub username. Accept the collaborator invite from the email or github.com/notifications.
+2. Clone the repo and install it. In PowerShell:
    ```
-   Form helper: `{% include "includes/form.html" %}` renders any Django form with errors.
-   Charts: Chart.js is already in the repo. Add `{% load static %}<script src="{% static 'js/chart.umd.min.js' %}"></script>` in `{% block scripts %}`.
+   git clone https://github.com/S1attaro/RentCheck.git
+   cd RentCheck
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+   (Mac: `source .venv/bin/activate` instead.) If `activate` says scripts are disabled, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.
+3. Connor will email you `env.txt`. Save it in the `RentCheck` folder (next to `manage.py`) and rename it to `.env`. It has our API keys. **Never commit it.** It's in `.gitignore`, so a normal `git add .` skips it.
+4. Set up the database and data:
+   ```
+   python manage.py migrate
+   python manage.py seed_demo
+   python manage.py refresh_data
+   python manage.py runserver
+   ```
+   Open http://127.0.0.1:8000. Towns should show real numbers (no yellow "demo" warning).
+5. Run the tests: `python manage.py test`. They should all pass before you change anything.
 
-## What you can use from Connor's part
+## Step 2: Work on your own branch
 
-```python
-from towns.models import Town, RentPoint, EnrollmentPoint, BEDROOM_CHOICES
-from towns import stats
-from leases.stats import reported_summary
-
-stats.typical_rent(town, bedrooms=2)      # median rent, last 12 months, or None
-stats.yearly_change(town, bedrooms=2)     # % change vs a year ago, or None
-stats.rent_series(town, bedrooms=2)       # [{"month": "2025-08", "rent": 1250.0}, ...]
-stats.enrollment_series(town)             # [{"year": 2025, "students": 56000}, ...]
-stats.yearly_change_dollars(town, 2)      # $ change vs a year ago, or None
-stats.town_summary(town, bedrooms=2)      # dict: name, slug, typical_rent, yearly_change_pct, students,
-                                          #   source_label, is_demo, size_fallback ...
-reported_summary(town, bedrooms=2)        # {"count", "enough", "median_unit_rent", "median_paid_vs_asking"}
+```
+git checkout -b haan/checks
 ```
 
-`bedrooms=None` means all unit sizes. If a size has no data, the stats fall back to all sizes and `town_summary` sets `size_fallback=True`. Real data (Census, Zillow) is always used over demo data.
-
-**Current listings** (from RentCast, once Connor runs `fetch_rentcast`) are the best source for "similar places":
-
-```python
-from towns.models import Listing
-Listing.objects.filter(town=town, bedrooms=2)   # address, zip_code, property_type, bedrooms, bathrooms,
-                                                # square_feet, price, days_on_market, latitude, longitude
-stats.listing_summary(town, bedrooms=2)         # {"count", "median_price", "rows": cheapest 8}
-stats.source_comparison(town, bedrooms=2)       # latest rent from each source, for showing a range
+Commit as you go:
+```
+git add checks/
+git commit -m "Short note about what you did"
+git push -u origin haan/checks
 ```
 
-Lease reports have these fields you can use for "similar places" and the model: `bedrooms`, `unit_rent` (whole-unit rent, already converted from per-bed), `asking_rent`, `property_type`, `lease_months`, `furnished`, `square_feet`, `walk_minutes`, `utilities_included`, `lease_start`. Skip reports where `flagged=True` (likely typos).
+When version 1 works, open a pull request: go to the repo on GitHub, click **Compare & pull request**, then **Create pull request**. Text Connor and one of you merges it.
 
-JSON version of the same data: `/api/towns/` and `/api/towns/<slug>/?bedrooms=2`.
+Before starting new work, get the latest `main`:
+```
+git checkout main
+git pull
+git checkout -b haan/compare
+```
 
-## Task 1: Fair Rent Check (`checks/`)
+Rules:
+1. Only edit files inside `checks/` and `compare/`.
+2. If you need something outside them (a new field on `Town`, a package in `requirements.txt`), text Connor first.
+3. Read data with the helper functions below. Don't write to Connor's tables.
+4. Run `python manage.py test` before every pull request.
 
-Matches wireframe page 3. Form on the left, result and similar places on the right.
+## Step 3: Fair Rent Check, version 1 (due Nov 16)
 
-Suggested model in `checks/models.py`:
+Matches wireframe page 3: form on the left, result on the right.
 
+**Files to create or fill in, all inside `checks/`:**
+
+| File | What goes in it |
+|---|---|
+| `models.py` | A `RentCheck` model (see below). Then run `python manage.py makemigrations checks` and `python manage.py migrate`. Commit the new file in `checks/migrations/`. |
+| `forms.py` (new) | A `ModelForm` for `RentCheck` with town, bedrooms, monthly_rent, per_person, utilities_included. Reject rent under 100 or over 10,000 with a clear message. |
+| `views.py` | One view: on GET show the empty form. On POST, if valid, work out the rating (below), save the `RentCheck`, and show the result. |
+| `templates/checks/index.html` | Two columns like the wireframe. Use `{% include "includes/form.html" %}` to draw the form with its errors. |
+| `admin.py` | Register `RentCheck` so you can see saved checks at /admin. |
+| `tests.py` (new) | Tests for: rent too low or too high, each rating (low, fair, high), and the "unknown" case. |
+
+**Model to start from:**
 ```python
+from django.conf import settings
+from django.db import models
+
+from towns.models import BEDROOM_CHOICES
+
+
 class RentCheck(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     town = models.ForeignKey("towns.Town", on_delete=models.CASCADE, related_name="rent_checks")
@@ -71,46 +101,88 @@ class RentCheck(models.Model):
     monthly_rent = models.PositiveIntegerField()
     per_person = models.BooleanField(default=False)
     utilities_included = models.BooleanField(default=False)
-    expected_low = models.DecimalField(max_digits=8, decimal_places=2, null=True)
-    expected_high = models.DecimalField(max_digits=8, decimal_places=2, null=True)
-    rating = models.CharField(max_length=10)  # "low", "fair", "high", "unknown"
+    typical_rent = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    expected_low = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    expected_high = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    rating = models.CharField(max_length=10)  # "low", "fair", "high", or "unknown"
     created_at = models.DateTimeField(auto_now_add=True)
 ```
 
-Steps:
-- [ ] Form: town, bedrooms, monthly rent, per person checkbox, utilities. Validate rent is 100 to 10000.
-- [ ] Version 1 rating (no AI yet): compare the price to `stats.typical_rent(town, bedrooms)`. Under 90% = low, over 110% = high, else fair. If typical rent is None, rating is "unknown" with a clear message.
-- [ ] Save each check as a `RentCheck` row and show the result.
-- [ ] "Similar places": current `Listing` rows in the same town and size (closest price or size first), plus lease reports.
-- [ ] After the result, link to `/leases/new/?town=<slug>` ("Paid a lease here? Share it").
-- [ ] Version 2 rating (the AI feature, see `docs/FIRST_DRAFT.md` section 3): replace the 90/110 rule with the trained price model's expected range.
-- [ ] Tests in `checks/tests.py`: form validation, each rating, the unknown case.
+**Version 1 rating (no AI yet):**
+1. If `per_person` is checked, multiply the rent by the bedrooms to get the whole-unit rent.
+2. Get `stats.typical_rent(town, bedrooms)`.
+3. If that's `None`, the rating is "unknown". Show "Not enough data for this town and size yet."
+4. Otherwise: under 90% of typical is "low", over 110% is "high", anything else is "fair".
+5. Show the rating, the typical rent, and the percent difference, like "8% above typical ($1,320 vs $1,220)".
+6. Under the result, add a link: "Paid a lease here? Share it" pointing to `/leases/new/?town=<town slug>`.
 
-## Task 2: Compare Towns (`compare/`)
+To try it, look up a town's typical rent on its town page, then enter a rent above, near, and below it.
 
-Matches wireframe page 4. Up to 4 towns, a chart on top, a table below, CSV button.
+## Step 4: Finish Fair Rent Check (due Dec 8)
 
-Steps:
-- [ ] Pick up to 4 towns with a GET form (checkboxes or 4 dropdowns). More than 4 shows an error.
-- [ ] Table: one row per town with typical rent, yearly change, latest enrollment, students reported paid. Use `stats.town_summary` and `reported_summary`.
-- [ ] Sortable table: clicking a column header sorts by it (`?sort=typical_rent`).
-- [ ] Chart: rent over time for each picked town on one line chart (`stats.rent_series`).
+- [ ] **Similar places:** show up to 5 current `Listing` rows in the same town and size, closest price first. These fill in after Connor runs `fetch_rentcast`. If there are none, show the lease report totals instead.
+- [ ] **Paste a listing (optional):** add a text box that calls Connor's `read_listing()` and fills in the form for the user.
+- [ ] **AI price model** (the main AI feature, see `docs/FIRST_DRAFT.md` section 3a):
+  1. Text Connor to add `scikit-learn` and `joblib` to `requirements.txt`.
+  2. Make a command, `checks/management/commands/train_rent_model.py`, that builds a training table from `Listing` rows (bedrooms, bathrooms, square_feet, zip_code, price) plus lease reports (`unit_rent`), and trains two `HistGradientBoostingRegressor(loss="quantile")` models (quantile 0.25 and 0.75) for the low and high ends.
+  3. Save them with `joblib` to `checks/rent_model.joblib`. Model files are in `.gitignore`, so anyone can rebuild it with the command.
+  4. In the view, use the model's low and high instead of the 90%/110% rule. If the model file is missing or errors, fall back to the version 1 rule and say so on the page.
+  5. Keep a few listings out of training and check how often their real price lands inside the range. That number goes in our evaluation table.
+- [ ] **Tests:** the fallback when there's no model file, and that low is always below high.
+
+## Step 5: Compare Towns (due Dec 8)
+
+Matches wireframe page 4: up to 4 towns, a chart on top, a table below, a CSV button. Work on a new branch: `haan/compare`.
+
+- [ ] A GET form to pick up to 4 towns (checkboxes or 4 dropdowns). Picking more than 4 shows an error.
+- [ ] A table with one row per town: typical rent, yearly change, students, and what students reported paying. Use `stats.town_summary` and `reported_summary`.
+- [ ] Sorting: clicking a column header sorts by it (`?towns=a,b&sort=typical_rent`).
+- [ ] A line chart of rent over time for each town (`stats.rent_series`). See `towns/templates/towns/town_detail.html` for a working Chart.js example.
 - [ ] CSV download at `/compare/csv/?towns=a,b,c` using Python's `csv` module and `HttpResponse(content_type="text/csv")`.
-- [ ] Tests in `compare/tests.py`: 0 towns, 5 towns (error), CSV has the right header and rows.
+- [ ] Tests: no towns picked, 5 towns (error), and the CSV has the right header and rows.
 
-No model needed here unless you want saved comparisons.
+No model is needed here.
 
-## Setup
+## What you can use from Connor's part
 
-See `README.md`. Short version:
+```python
+from towns.models import Town, Listing, BEDROOM_CHOICES
+from towns import stats
+from leases.stats import reported_summary
+from reader.ai import read_listing
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate            # Mac/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py seed_demo
-python manage.py refresh_data     # real numbers, needs internet and keys in .env
-python manage.py runserver
-python manage.py test             # Connor's tests should pass before and after your changes
+stats.typical_rent(town, bedrooms=2)        # typical monthly rent, or None
+stats.yearly_change(town, bedrooms=2)       # % change vs a year earlier, or None
+stats.yearly_change_dollars(town, 2)        # $ change vs a year earlier, or None
+stats.rent_series(town, bedrooms=2)         # [{"month": "2025-08", "rent": 1250.0}, ...]
+stats.enrollment_series(town)               # [{"year": 2024, "students": 35000, "source": "ipeds"}, ...]
+stats.town_summary(town, bedrooms=2)        # dict with name, slug, typical_rent, yearly_change_pct,
+                                            #   students, source_label, is_demo, size_fallback
+stats.source_comparison(town, bedrooms=2)   # latest rent from each data source
+stats.listing_summary(town, bedrooms=2)     # {"count", "median_price", "rows": cheapest 8 listings}
+reported_summary(town, bedrooms=2)          # {"count", "enough", "median_unit_rent", ...}
+
+Listing.objects.filter(town=town, bedrooms=2)   # address, zip_code, property_type, bedrooms,
+                                                # bathrooms, square_feet, price, days_on_market
+
+result = read_listing(pasted_text)          # result["fields"] has monthly_rent, bedrooms, ...
+                                            # result["town"] is a Town or None
 ```
+
+- `bedrooms=None` means all sizes. If a size has no data, the stats use all sizes and `town_summary` sets `size_fallback=True`.
+- Lease reports (`town.lease_reports`) have `bedrooms`, `unit_rent` (whole-unit rent, already converted from per bed), `property_type`, `lease_months`, `furnished`, `square_feet`, and `walk_minutes`. Skip any with `flagged=True`, since those are likely typos.
+- JSON versions: `/api/towns/` and `/api/towns/<slug>/?bedrooms=2`.
+
+## Page layout
+
+Your pages extend the shared layout:
+```django
+{% extends "base.html" %}
+{% block title %}Fair Rent Check{% endblock %}
+{% block content %} ... {% endblock %}
+```
+- Forms: `{% include "includes/form.html" %}` draws any Django form with its error messages.
+- Cards and tables: use the CSS classes `card`, `table`, `stats`, and `stat` so your pages match the rest of the site.
+- Charts: put `{% load static %}<script src="{% static 'js/chart.umd.min.js' %}"></script>` in `{% block scripts %}`.
+
+Questions or something broken? Text Connor.

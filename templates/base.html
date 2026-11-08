@@ -6,7 +6,7 @@
   <title>{% block title %}RentCheck{% endblock %} | RentCheck</title>
   <meta name="description" content="Check if your college town rent is fair. Rent trends, enrollment, and what students actually paid.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Cpath d='M8 17l8-7 8 7v8H8z' fill='white'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="{% static 'css/site.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}?v=5">
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -31,6 +31,7 @@
       {% with name=request.resolver_match.namespace %}
       <a href="{% url 'towns:list' %}" class="{% if name == 'towns' %}active{% endif %}">Towns</a>
       <a href="{% url 'checks:index' %}" class="{% if name == 'checks' %}active{% endif %}">Fair Rent Check</a>
+      <a href="{% url 'reader:page' %}" class="{% if name == 'reader' %}active{% endif %}">Listing Reader</a>
       <a href="{% url 'compare:index' %}" class="{% if name == 'compare' %}active{% endif %}">Compare Towns</a>
       <a href="{% url 'leases:mine' %}" class="{% if name == 'leases' %}active{% endif %}">My Leases</a>
       {% endwith %}

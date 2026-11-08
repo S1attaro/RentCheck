@@ -92,7 +92,7 @@ class LeaseReportForm(forms.ModelForm):
             "property_type": "What kind of place?",
             "bedrooms": "How many bedrooms?",
             "monthly_rent": "How much rent did you pay each month?",
-            "per_person": "That amount was just my share (I paid for my own bedroom)",
+            "per_person": "Rent was per bed (just my share)",
             "asking_rent": "What did the listing say the rent was? (optional)",
             "utilities_included": "Utilities (water, power, internet) were included in the rent",
             "lease_months": "How long was the lease?",
@@ -102,7 +102,7 @@ class LeaseReportForm(forms.ModelForm):
         }
         help_texts = {
             "monthly_rent": "Dollars per month. Example: 1200",
-            "per_person": "Leave this unchecked if the amount above was the rent for the whole place.",
+            "per_person": "Leave unchecked if it was rent for the whole place.",
             "asking_rent": "Skip this if you don't remember. Example: 1250",
             "square_feet": "A guess is fine. Example: 850",
         }
@@ -163,6 +163,6 @@ class LeaseReportForm(forms.ModelForm):
             self.add_error(
                 "asking_rent",
                 "This is very different from the rent you paid. Check for a typo, "
-                "or check the \"just my share\" box if you only paid for your own bedroom.",
+                "or check \"Rent was per bed\" if you only paid your share.",
             )
         return cleaned

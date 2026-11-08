@@ -21,7 +21,7 @@
           <td><a href="{{ r.town.get_absolute_url }}">{{ r.town.name }}</a></td>
           <td>{{ r.get_property_type_display }}</td>
           <td>{{ r.get_bedrooms_display }}</td>
-          <td>${{ r.monthly_rent|intcomma }}{% if r.per_person %} <span class="muted small">per person</span>{% endif %}
+          <td>${{ r.monthly_rent|intcomma }}{% if r.per_person %} <span class="muted small">per bed</span>{% endif %}
             {% if r.flagged %}<span class="badge" title="Far from the town's typical rent, so it's left out of averages">not counted</span>{% endif %}</td>
           <td>{% if r.asking_rent %}${{ r.asking_rent|intcomma }}{% else %}<span class="muted">-</span>{% endif %}</td>
           <td>{{ r.lease_start|date:"M Y" }}</td>

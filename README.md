@@ -11,6 +11,7 @@ INFO 490, Fall 2026, Team 19: Connor Slattery (cslat), Haaneol Kang (haaneol2).
 | Town search and town pages (rent over time, enrollment) | Working | Connor |
 | Past lease form (add, edit, delete your own) | Working | Connor |
 | JSON API for towns | Working | Connor |
+| Listing Reader: paste a listing, AI pulls out the details (AI prototype) | Working | Connor |
 | Fair Rent Check (AI feature) | In progress | Haan |
 | Compare Towns (chart, table, CSV) | In progress | Haan |
 
@@ -48,8 +49,10 @@ These go in the `.env` file. Never commit `.env`, since it has API keys. `.env.e
 | `HUD_API_TOKEN` | HUD rent data. |
 | `SCORECARD_API_KEY` | College Scorecard enrollment data (from api.data.gov). |
 | `RENTCAST_API_KEY` | RentCast listings. |
+| `RENTCAST_MONTHLY_LIMIT` | Optional. Most RentCast calls to allow per month (default 45, to stay safely under the free 50). |
 | `CENSUS_API_KEY` | Optional. Census works without it. |
-| `GROQ_API_KEY` | For the AI feature (not used yet). |
+| `GROQ_API_KEY` | Groq key for the Listing Reader. Without it, the basic reader is used. |
+| `GROQ_MODEL` | Optional. The Groq model to use (default `openai/gpt-oss-20b`). |
 
 ## Data
 
@@ -76,7 +79,8 @@ A few things to know:
 
 1. Search for a town or school, or pick one from the home page.
 2. On a town page, change the unit size to see rent for that size.
-3. Sign up, then go to **My Leases** to share a past lease. Only you can see your own reports.
+3. Go to **Listing Reader**, paste a listing's text, and see how its rent compares to the town.
+4. Sign up, then go to **My Leases** to share a past lease. Only you can see your own reports.
 
 ## API
 
@@ -86,6 +90,12 @@ GET /api/towns/urbana-champaign/?bedrooms=2
 ```
 
 Returns the town's typical rent, how much it changed in a year, rent over time from each source, enrollment, and the lease report totals.
+
+```
+POST /read-listing/api/    body: {"text": "2 bed near campus, $1,350/month..."}
+```
+
+Returns the details the Listing Reader found, the matched town, and how the rent compares to that town.
 
 ## Hosting
 
@@ -104,6 +114,7 @@ rentcheck/   settings and main URLs
 core/        home page and sign up
 towns/       town data, town pages, the JSON API, and the data commands
 leases/      the past lease form
+reader/      the Listing Reader (AI)
 checks/      Fair Rent Check (Haan)
 compare/     Compare Towns (Haan)
 templates/   shared page layout
@@ -114,4 +125,4 @@ docs/        first draft write-up
 
 ## AI
 
-The AI plan is in `docs/FIRST_DRAFT.md`, section 3. A full `README_AI.md` comes with the final submission.
+The Listing Reader is at `/read-listing/`. It trims the pasted page, removes phone numbers and emails, sends the text to Groq, and checks every value it gets back. If Groq isn't available, a basic reader is used instead. The full AI plan is in `docs/FIRST_DRAFT.md`, section 3. A full `README_AI.md` comes with the final submission.

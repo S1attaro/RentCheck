@@ -3,10 +3,10 @@ from django.contrib.auth import login
 from django.shortcuts import redirect, render
 
 from leases.models import LeaseReport
-
-from .forms import SignupForm
 from towns import stats
 from towns.models import DataImport, Town
+
+from .forms import SignupForm
 
 
 def home(request):

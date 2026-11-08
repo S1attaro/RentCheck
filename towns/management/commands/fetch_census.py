@@ -87,8 +87,9 @@ def combine_places(records):
         if weight:
             rents[bedrooms] = round(total / weight, 2)
 
-    student_counts = [to_number(r.get(v)) for r in records for v in STUDENT_VARS]
-    students = int(sum(s for s in student_counts if s is not None)) if any(s is not None for s in student_counts) else None
+    counts = [to_number(r.get(v)) for r in records for v in STUDENT_VARS]
+    counts = [c for c in counts if c is not None]
+    students = int(sum(counts)) if counts else None
     return rents, students
 
 

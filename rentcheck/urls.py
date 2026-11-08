@@ -8,6 +8,7 @@ urlpatterns = [
     path("towns/", include("towns.urls")),
     path("leases/", include("leases.urls")),
     path("api/", include("towns.api_urls")),
+    path("read-listing/", include("reader.urls")),
     # Haan's apps
     path("check/", include("checks.urls")),
     path("compare/", include("compare.urls")),

@@ -12,7 +12,7 @@ Deploy in the last week of November so it stays up through grading.
 1. Sign up at https://www.pythonanywhere.com (Beginner, free). Your site will be `https://<username>.pythonanywhere.com`.
 2. Open a **Bash console** and run:
    ```bash
-   git clone https://github.com/<you>/<repo>.git rentcheck
+   git clone https://github.com/S1attaro/RentCheck.git rentcheck
    cd rentcheck
    mkvirtualenv rentcheck --python=python3.12
    pip install -r requirements.txt
@@ -28,6 +28,7 @@ Deploy in the last week of November so it stays up through grading.
    RENTCAST_API_KEY=...
    HUD_API_TOKEN=...
    SCORECARD_API_KEY=...
+   GROQ_API_KEY=...
    ```
 3. Set up the database, data, and static files:
    ```bash

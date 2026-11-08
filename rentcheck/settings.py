@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "core",
     "towns",
     "leases",
+    "reader",
     # Haan
     "checks",
     "compare",
@@ -72,6 +73,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "rentcheck.wsgi.application"
+
+# Used to rate limit the listing reader (one counter per visitor).
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 DATABASES = {
     "default": {
@@ -108,6 +112,8 @@ RENTCAST_API_KEY = os.environ.get("RENTCAST_API_KEY", "")
 HUD_API_TOKEN = os.environ.get("HUD_API_TOKEN", "")
 SCORECARD_API_KEY = os.environ.get("SCORECARD_API_KEY", "")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+# Llama 3.1 8B was shut down by Groq in Aug 2026. gpt-oss-20b is Groq's suggested replacement.
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 # RentCast's free plan is 50 calls a month. Stop a bit early so a mistake can't cost money.
 RENTCAST_MONTHLY_LIMIT = int(os.environ.get("RENTCAST_MONTHLY_LIMIT", "45"))
 

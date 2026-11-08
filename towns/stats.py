@@ -14,17 +14,33 @@ source_comparison() shows every source side by side.
 from datetime import date
 from statistics import median
 
-from .models import SOURCE_CHOICES, SOURCE_NOTES, YEARLY_SOURCES, DataImport, RentPoint
+from .models import SOURCE_CHOICES, SOURCE_NOTES, YEARLY_SOURCES, RentPoint
 
 REAL_SOURCES = ["zillow", "rentcast", "census", "hud"]
+ENROLLMENT_PRIORITY = ["ipeds", "census", "demo"]
 SOURCE_LABELS = dict(SOURCE_CHOICES)
+
+
+def _sources_present(town):
+    """Sources this town has data for, best first. Demo only if there is no real data."""
+    present = set(town.rent_points.values_list("source", flat=True).distinct())
+    return [s for s in REAL_SOURCES if s in present] or (["demo"] if "demo" in present else [])
+
+
+def _size_points(town, source, bedrooms=None):
+    """(points, all_sizes) for one source. Falls back to all sizes if that unit size is missing."""
+    points = town.rent_points.filter(source=source)
+    if bedrooms is not None:
+        exact = points.filter(bedrooms=bedrooms)
+        if exact.exists():
+            return exact, False
+        return points.filter(bedrooms__isnull=True), True
+    return points.filter(bedrooms__isnull=True), False
 
 
 def _pick(town, bedrooms=None):
     """Return (source, bedrooms_used) for this town, or (None, None) if there is no data."""
-    present = set(town.rent_points.values_list("source", flat=True).distinct())
-    candidates = [s for s in REAL_SOURCES if s in present] or (["demo"] if "demo" in present else [])
-
+    candidates = _sources_present(town)
     if bedrooms is not None:
         for source in candidates:
             if town.rent_points.filter(source=source, bedrooms=bedrooms).exists():
@@ -87,9 +103,7 @@ def _change_pair(town, bedrooms=None):
     """(latest, year_ago, source) from the first source that has both points for this size."""
     sources = [_pick(town, bedrooms)[0]] + _sources_present(town)
     for source in dict.fromkeys(s for s in sources if s):
-        points = town.rent_points.filter(source=source)
-        points = points.filter(bedrooms=bedrooms) if bedrooms is not None and points.filter(bedrooms=bedrooms).exists() \
-            else points.filter(bedrooms__isnull=True)
+        points, _ = _size_points(town, source, bedrooms)
         latest = points.order_by("-month").first()
         if latest is None:
             continue
@@ -99,36 +113,33 @@ def _change_pair(town, bedrooms=None):
     return None, None, None
 
 
-def yearly_change(town, bedrooms=None):
-    """Percent change over the latest 12 months of data."""
-    latest, year_ago, _ = _change_pair(town, bedrooms)
-    if latest is None:
-        return None
+def _pct(latest, year_ago):
     return round((float(latest.rent) - float(year_ago.rent)) / float(year_ago.rent) * 100, 1)
 
 
-def yearly_change_dollars(town, bedrooms=None):
-    latest, year_ago, _ = _change_pair(town, bedrooms)
-    if latest is None:
-        return None
+def _dollars(latest, year_ago):
     return round(float(latest.rent) - float(year_ago.rent))
 
 
-def _sources_present(town):
-    present = set(town.rent_points.values_list("source", flat=True).distinct())
-    return [s for s in REAL_SOURCES if s in present] or (["demo"] if "demo" in present else [])
+def yearly_change(town, bedrooms=None):
+    """Percent change over the latest 12 months of data, or None."""
+    latest, year_ago, _ = _change_pair(town, bedrooms)
+    return _pct(latest, year_ago) if latest else None
+
+
+def yearly_change_dollars(town, bedrooms=None):
+    """Dollar change over the latest 12 months of data, or None."""
+    latest, year_ago, _ = _change_pair(town, bedrooms)
+    return _dollars(latest, year_ago) if latest else None
 
 
 def rent_by_source(town, bedrooms=None):
     """{"census": [{"month", "rent"}...], "hud": [...]} for every source with data, for the chart."""
     out = {}
     for source in _sources_present(town):
-        points = town.rent_points.filter(source=source)
-        exact = points.filter(bedrooms=bedrooms) if bedrooms is not None else points.filter(bedrooms__isnull=True)
-        if not exact.exists():
-            exact = points.filter(bedrooms__isnull=True)
-        if exact.exists():
-            out[source] = [{"month": p.month.strftime("%Y-%m"), "rent": float(p.rent)} for p in exact.order_by("month")]
+        points, _ = _size_points(town, source, bedrooms)
+        if points.exists():
+            out[source] = [{"month": p.month.strftime("%Y-%m"), "rent": float(p.rent)} for p in points.order_by("month")]
     return out
 
 
@@ -136,10 +147,8 @@ def source_comparison(town, bedrooms=None):
     """Latest number from each source, so users can see how they line up."""
     rows = []
     for source in _sources_present(town):
-        points = town.rent_points.filter(source=source)
-        exact = points.filter(bedrooms=bedrooms) if bedrooms is not None else points.filter(bedrooms__isnull=True)
-        fallback = bedrooms is not None and not exact.exists()
-        latest = (points.filter(bedrooms__isnull=True) if fallback else exact).order_by("-month").first()
+        points, fallback = _size_points(town, source, bedrooms)
+        latest = points.order_by("-month").first()
         if latest is None:
             continue
         rows.append({
@@ -151,9 +160,6 @@ def source_comparison(town, bedrooms=None):
             "all_sizes": fallback,
         })
     return rows
-
-
-ENROLLMENT_PRIORITY = ["ipeds", "census", "demo"]
 
 
 def enrollment_series(town):
@@ -186,15 +192,12 @@ def listing_summary(town, bedrooms=None, limit=8):
     }
 
 
-def last_import(source):
-    return DataImport.objects.filter(source=source).first()
-
-
 def town_summary(town, bedrooms=None):
     """Everything a page or API needs about one town in one dict."""
     source, used = _pick(town, bedrooms)
     latest = _points(town, bedrooms).order_by("-month").first()
     enrollment = latest_students(town)
+    change_latest, change_year_ago, change_source = _change_pair(town, bedrooms)
     return {
         "name": town.name,
         "state": town.state,
@@ -210,9 +213,9 @@ def town_summary(town, bedrooms=None):
         "is_demo": source == "demo",
         "latest_month": as_of_label(latest.month, source) if latest else None,
         "typical_rent": typical_rent(town, bedrooms),
-        "yearly_change_pct": yearly_change(town, bedrooms),
-        "yearly_change_dollars": yearly_change_dollars(town, bedrooms),
-        "change_source_label": SOURCE_LABELS.get(_change_pair(town, bedrooms)[2], ""),
+        "yearly_change_pct": _pct(change_latest, change_year_ago) if change_latest else None,
+        "yearly_change_dollars": _dollars(change_latest, change_year_ago) if change_latest else None,
+        "change_source_label": SOURCE_LABELS.get(change_source, ""),
         "students": enrollment.students if enrollment else None,
         "students_year": enrollment.year if enrollment else None,
         "students_source": enrollment.source if enrollment else None,

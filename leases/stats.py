@@ -1,3 +1,5 @@
+"""Totals from student lease reports. Used on town pages and by the API."""
+
 from statistics import median
 
 # Hide numbers until enough students report, so one person's lease can't be picked out.
@@ -5,6 +7,7 @@ MIN_REPORTS = 3
 
 
 def reported_summary(town, bedrooms=None):
+    """Count and median rent from student reports. Numbers only show once MIN_REPORTS is reached."""
     reports = town.lease_reports.filter(flagged=False)
     if bedrooms is not None:
         reports = reports.filter(bedrooms=bedrooms)

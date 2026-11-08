@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Listing Reader{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Listing Reader <span class="badge">beta</span></h1>
+    <p class="muted">Paste the text of a rental listing (not the link) and we'll pull out the rent, bedrooms, and other details, then compare it to the town.</p>
+  </div>
+</section>
+
+<div class="reader-grid">
+  <section class="card">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "includes/form.html" %}
+      <button type="submit">Read listing</button>
+      <a class="button secondary" href="?sample=1">Try a sample</a>
+    </form>
+    <p class="muted small">Phone numbers and emails are removed before the text is read. Nothing you paste is saved.</p>
+  </section>
+
+  <section class="card">
+    <h2>What we found</h2>
+    {% if result %}
+      {% for w in result.warnings %}<div class="flash warning small">{{ w }}</div>{% endfor %}
+      <table class="table">
+        <tbody>
+          <tr><th>Town</th><td>{% if result.town %}<a href="{{ result.town.get_absolute_url }}">{{ result.town }}</a>{% else %}<span class="muted">Not found</span>{% endif %}</td></tr>
+          <tr><th>Rent</th><td>{% if result.fields.monthly_rent %}${{ result.fields.monthly_rent|intcomma }}{% if result.fields.max_rent %} to ${{ result.fields.max_rent|intcomma }}{% endif %}/month{% if result.fields.rent_is_per_bed %} per bed{% endif %}{% else %}<span class="muted">Not listed</span>{% endif %}</td></tr>
+          <tr><th>Bedrooms</th><td>{% if result.fields.bedrooms is not None %}{% if result.fields.bedrooms == 0 %}Studio{% else %}{{ result.fields.bedrooms }}{% endif %}{% else %}<span class="muted">Not listed</span>{% endif %}</td></tr>
+          <tr><th>Bathrooms</th><td>{% if result.fields.bathrooms %}{{ result.fields.bathrooms|floatformat:"-1" }}{% else %}<span class="muted">Not listed</span>{% endif %}</td></tr>
+          <tr><th>Square feet</th><td>{% if result.fields.square_feet %}{{ result.fields.square_feet|intcomma }}{% else %}<span class="muted">Not listed</span>{% endif %}</td></tr>
+          <tr><th>Utilities included</th><td>{% if result.fields.utilities_included is True %}Yes{% elif result.fields.utilities_included is False %}No{% else %}<span class="muted">Not listed</span>{% endif %}</td></tr>
+          <tr><th>Furnished</th><td>{% if result.fields.furnished is True %}Yes{% elif result.fields.furnished is False %}No{% else %}<span class="muted">Not listed</span>{% endif %}</td></tr>
+        </tbody>
+      </table>
+      {% with x=result.extras %}
+      {% if x %}
+        <h3 class="small-head">Also on the listing</h3>
+        <ul class="chips">
+          {% if x.pets %}<li>Pets: {{ x.pets }}</li>{% endif %}
+          {% if x.units_available %}<li>{{ x.units_available }} unit{{ x.units_available|pluralize }} available</li>{% endif %}
+          {% if x.lease_terms %}<li>Lease: {{ x.lease_terms }}</li>{% endif %}
+          {% if x.parking %}<li>Parking: {{ x.parking }}</li>{% endif %}
+          {% for a in x.amenities %}<li>{{ a }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% endwith %}
+      <p class="muted small">Read by: {% if result.method == "ai" %}AI (Groq){% else %}basic reader (no AI){% endif %} in {{ result.seconds }} seconds</p>
+
+      {% if comparison %}
+        <div class="compare-box {% if comparison.above %}above{% else %}below{% endif %}">
+          <div class="big">{% if comparison.abs_diff == 0 %}About typical{% else %}{{ comparison.abs_diff }}% {% if comparison.above %}above{% else %}below{% endif %} typical{% endif %}</div>
+          <div>
+            {% if result.fields.max_rent %}Based on the lowest price, ${{ result.fields.monthly_rent|intcomma }}. {% endif %}{% if result.fields.rent_is_per_bed %}${{ comparison.whole_unit|intcomma }} for the whole place. {% endif %}
+            Typical for this size in {{ result.town.name }} is ${{ comparison.typical|floatformat:0|intcomma }}.
+          </div>
+          <div class="muted small">Source: {{ comparison.source }}. A quick comparison only. The full Fair Rent Check is coming soon.</div>
+        </div>
+      {% endif %}
+    {% else %}
+      <p class="muted">Results show up here after you paste a listing.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
