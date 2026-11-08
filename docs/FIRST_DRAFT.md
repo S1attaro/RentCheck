@@ -6,90 +6,86 @@ INFO 490, Fall 2026, Team 19. Connor Slattery (cslat), Haaneol Kang (haaneol2).
 
 **Startup.** RentCheck: "Is your college rent fair?"
 
-**Problem.** Students sign leases months ahead, often for the first time, and the asking price is usually the only number they see. Sites like Zillow report rent for a whole city, which doesn't help much in a town where most renters are students. What tenants actually pay is rarely public. A place that is $150 a month too high costs $1,800 over a one-year lease.
+**Problem.** Students sign leases months ahead, often for the first time. The asking price is usually the only number they see. Sites like Zillow show rent for a whole city, which doesn't help much in a town where most renters are students. What tenants actually pay is rarely public. A place that is $150 a month too high costs $1,800 over a one-year lease.
 
-**Target users.** College students looking for off-campus housing, mainly in Big Ten type college towns (Urbana-Champaign, Bloomington, Madison, Ann Arbor, Iowa City, State College, West Lafayette). Parents helping pay rent are a second group.
+**Target users.** College students looking for off-campus housing in college towns like Urbana-Champaign, Bloomington, Madison, and Ann Arbor. Parents who help pay rent are a second group.
 
-**Core value.** A fair price to compare against before signing: rent trends for the town and unit size, enrollment next to it, and what students really paid.
+**Core value.** A fair price to compare against before signing.
 
 **Three core features**
-1. **Town page.** Rent over time by unit size next to enrollment, plus typical rent, change vs. a year ago, and what students reported paying.
-2. **Fair Rent Check (AI feature).** Enter a listing and get a low / fair / high rating with an expected price range and similar places.
-3. **Past lease reports.** Logged-in students share what they paid and what the listing said. Only town-level medians are shown, and only after 3 or more reports.
+1. **Town page.** Rent over time by unit size, shown next to enrollment.
+2. **Fair Rent Check (AI feature).** Enter a listing and get a low, fair, or high rating with similar places.
+3. **Past lease reports.** Logged-in students share what they paid. Others only see town totals, and only after 3 or more reports.
 
-Compare Towns (up to 4 towns, chart, sortable table, CSV) stays as a fourth, smaller feature.
+Compare Towns (up to 4 towns, chart, table, CSV) stays as a fourth, smaller feature.
 
 **Changes from P2-A2**
-- Home page: the wireframe had a map marked "(?)". We replaced it with a table of college towns showing typical rent and yearly change. It's more useful for comparing and doesn't need a map API.
-- Lease form: added a "rent was per person (per bed)" checkbox. A lot of student housing is priced per bed, and mixing the two would wreck the averages.
-- Privacy rule: lease report numbers stay hidden until a town and size has 3 or more reports, so one student's lease can't be picked out.
-- Data: all four sources from P2-A2 are now hooked up through their free APIs: Census (rent by bedroom count, 2015-2024), HUD Fair Market Rents (by bedroom, county or campus ZIP), RentCast (current asking rents and active listings), and Zillow (optional file). We added College Scorecard for official enrollment and each school's own off-campus cost estimate. The town page shows all sources side by side because they measure different things.
-- Students: the town page shows both students enrolled at the school (College Scorecard) and college students living in town (Census), since the second is the group actually renting there.
-- Towns: 13 college towns instead of a few, listed in `data/towns.csv`.
-- Lease form: also collects property type, lease length, furnished, square feet, and walk time to campus. These are the features the fair rent model needs to find similar places.
+- **Home page.** The wireframe had a map marked "(?)". We replaced it with a table of towns and their typical rent. It's easier to compare and doesn't need a map API.
+- **Data.** All four sources from P2-A2 are now connected through free APIs: Census, HUD, RentCast, and Zillow. We also added College Scorecard for official enrollment.
+- **Enrollment.** The town page shows two numbers: students enrolled at the school, and college students living in town. The second one is the group actually renting.
+- **Towns.** We track 13 college towns instead of a few.
+- **Lease form.** It now asks if the rent was per bed, since a lot of student housing is priced that way. It also asks for property type, lease length, and a few optional details. The AI model will use these.
 
 ## 2. What works now
 
-Repo: Django project `rentcheck` with five apps (`core`, `towns`, `leases`, `checks`, `compare`).
+The repo is a Django project with five apps: `core`, `towns`, `leases`, `checks`, and `compare`.
 
-- **Models (7, with relationships):** `Town`; `RentPoint`, `EnrollmentPoint`, `Listing` (each FK to Town); `LeaseReport` (FK to Town and User); `ApiCall` and `DataImport` (logs of outside API calls and data refreshes).
-- **Database-backed workflow:** Sign up → Share a past lease (form with validation) → saved to `LeaseReport` → shows up in My Leases (edit, delete) → counts toward the town page's "what students reported paying" once 3 reports exist.
-- **Views and templates:** function-based views (home, town list, town detail, API) and class-based views (lease create, list, update, delete). All pages extend `base.html`; shared includes for forms and the town table.
-- **Auth:** sign up, log in, log out. Lease pages require login. Users can only see and change their own reports; anyone else gets a 404.
-- **API:** internal JSON API at `/api/towns/` and `/api/towns/<slug>/`. The town page charts load their data from it.
-- **Data features:** town search, rent stats (median, yearly change), Chart.js charts.
-- **External APIs (4):** `fetch_census`, `fetch_hud`, `fetch_scorecard`, and `fetch_rentcast` pull from the Census, HUD, College Scorecard, and RentCast APIs and save to the database. `refresh_data` runs all that have keys. All calls go through one client (`towns/clients.py`) that logs every call without keys. RentCast's free plan is 50 calls a month, so the app plans 2 calls per town, has a `--dry-run`, and refuses to pass a set limit.
-- **Data features:** town search; a town page with rent over time from every source on one chart, a side-by-side source table, students enrolled vs. living in town, the school's own off-campus cost, and current listings; rent stats (median, yearly change).
-- **Data quality:** demo data is ignored once real data exists; lease reports far from the town's typical rent are flagged and left out of medians; per-bed rents are converted to whole-unit rents before comparing.
-- **Tests:** 41 tests, all passing. They cover stats and source priority; each API command against fake responses in that API's documented format (including missing values, API failures, missing keys, and the RentCast monthly limit); that keys never get logged; search; the JSON API; form validation; outlier flagging; login; and per-user access.
-- **Note:** the live API runs happen on our own machines (the development sandbox could not reach them). The commands print what they saved and what failed.
+- **Models.** 7 models. `RentPoint`, `EnrollmentPoint`, and `Listing` each link to `Town`. `LeaseReport` links to `Town` and to the user.
+- **Main workflow.** A student signs up, fills out the past lease form, and saves it. It shows up on their My Leases page, where they can edit or delete it. Once a town has 3 reports, the town page shows the median.
+- **Views and templates.** Function-based views for the town pages and API. Class-based views for the lease pages. Every page extends `base.html`.
+- **Login.** Sign up, log in, and log out work. Lease pages need a login. Users can only see and change their own reports.
+- **Internal API.** `/api/towns/` and `/api/towns/<slug>/` return JSON. The town page charts load from it.
+- **Outside APIs.** Commands pull data from Census, HUD, College Scorecard, and RentCast and save it to the database. One command, `refresh_data`, runs them all. RentCast's free plan is 50 calls a month, so the app stops before it hits the limit.
+- **Data features.** Town search, rent charts from every source, a table comparing the sources, and enrollment charts.
+- **Data quality.** Demo numbers are only used until real data is loaded. Lease reports that look like typos (way off the town's typical rent) are kept but left out of the averages.
+- **Tests.** 46 tests, all passing.
+- **Live data.** We ran Census, HUD, and College Scorecard for all 13 towns on Nov 8. All 13 schools matched. RentCast is set up and waiting on its key.
 
-Fair Rent Check and Compare Towns are wired in (URLs, nav, placeholder pages) and are being built by Haan.
+Fair Rent Check and Compare Towns have their pages and links set up. Haan is building them.
 
 ## 3. AI plan
 
-The AI feature lives inside Fair Rent Check. It has two parts.
+The AI feature is inside Fair Rent Check. It has two parts.
 
-### 3a. Expected rent model (main feature)
+### 3a. Rent range model (main feature)
 
-**What it does.** Predicts a fair price range for a listing, then rates the asking price low, fair, or high.
+**What it does.** Predicts a fair price range for a listing. Then it rates the asking price low, fair, or high.
 
-**Input.** Town, bedrooms, per person or whole unit, utilities included, month. Later: square feet and distance to campus if RentCast listings are added.
+**Input.** Town, bedrooms, per bed or whole unit, utilities included, and month. Later: square feet and distance to campus.
 
-**Output.** Expected low and high (25th and 75th percentile), a rating, and the 5 most similar known places.
+**Output.** A low and high price, a rating, and the 5 most similar places.
 
-**Model.** Gradient boosted trees with quantile loss (scikit-learn `HistGradientBoostingRegressor(loss="quantile")`), one model for the 25th and one for the 75th percentile. Training data: current RentCast listings with bedrooms, bathrooms, square feet, property type, and ZIP (`Listing`); rent by bedroom count from Census, HUD, and RentCast (`RentPoint`); and student lease reports with property type, lease length, furnished, size, and walk time (`LeaseReport`).
+**Model.** A gradient boosting model from scikit-learn. We train two versions: one predicts the low end of the range and one predicts the high end. It learns from current listings, rent by town and bedroom count, and the leases students submit.
 
-**Why this model.** Small tabular data, runs on a CPU in milliseconds, free to host, and easy to explain. A quantile range is more honest than a single "fair price" number. An LLM is a poor fit for predicting a number from a table.
+**Why this model.** Our data is a small table. This model runs on a normal CPU in milliseconds, costs nothing to host, and is easy to explain. A range is more honest than one "fair price." An LLM isn't a good fit for predicting a number from a table.
 
-**Workflow.**
-User fills form → Django view validates it → features built from the form + `towns.stats` (typical rent, yearly change) → model predicts low/high → rating = where the price falls → saved as a `RentCheck` row → result page with range, rating, similar places.
+**How it works in Django.** The user fills out the form. The view checks the input. It adds the town's typical rent from our database. The model predicts the range. The result is saved and shown with similar places.
 
-**Validation and fallbacks.** If the model file is missing or errors, fall back to the simple rule (within 10% of typical rent = fair) and say so on the page. If a town has no data, return "unknown" instead of guessing. Predictions outside a sane range (under $100 or over 3x typical rent) are thrown out.
+**If something goes wrong.** If the model fails, the app uses a simple rule instead (within 10% of typical rent counts as fair) and says so on the page. If a town has no data, it says "not enough data" instead of guessing.
 
-**How we'll test it.** Hold out the most recent months and some lease reports. Measure how often real prices land inside the predicted range (target about 50%) and mean absolute error of the midpoint. Compare against the simple 10% rule as a baseline. Five realistic listing tests go in the final evaluation table.
+**How we'll test it.** We'll hold back some recent listings and leases and check how often the real price lands inside the predicted range. We'll compare it to the simple 10% rule. The final submission will have the 5-test table.
 
-### 3b. Listing text parser (add-on)
+### 3b. Listing text reader (add-on)
 
-**What it does.** The user pastes listing text (from Apartments.com, Facebook Marketplace, a landlord email). An LLM pulls out town, bedrooms, rent, per person or not, and utilities as JSON and fills in the check form.
+**What it does.** The user pastes a listing's text. An LLM pulls out the town, bedrooms, rent, and utilities and fills in the form for them.
 
-**Model.** Llama 3.1 8B through the Groq API (we used Groq in Project 1). Fast and cheap, and pulling fields out of short text is a task small models do well.
+**Model.** Llama 3.1 8B through the Groq API, which we used in Project 1. It's fast, cheap, and good at pulling details out of short text.
 
-**Validation.** The JSON goes through the same Django form as manual input, so bad or made-up values get caught. If the API fails or the key is missing, the user just fills the form by hand. Addresses and names are not saved.
+**Safety.** The LLM's output goes through the same form checks as typed input, so bad values get caught. If Groq is down, the user just types it in. Addresses and names are never saved.
 
-**Status.** Planned, not started. The rent model comes first.
+**Status.** Planned. The rent model comes first.
 
-### Evidence so far
+### What's built so far
 
-The data side the model needs is built and tested: the Census pipeline (`fetch_census`), rent series by town and size, typical rent and yearly change (`towns/stats.py`), and lease reports with per-person normalization and outlier flags (`leases/models.py`). The lease form already collects the model's features. Model training starts once enough real data is loaded.
+The data the model needs is already in place. We have rent by town and size from four sources, enrollment, current listings (once RentCast is on), and the lease form collects the details the model will use.
 
 ## 4. Roadmap
 
 | Task | Current status | Responsible member | Expected completion |
 |---|---|---|---|
-| Django core features | Town page, search, login, lease form (full CRUD) done. Fair Rent Check and Compare Towns pages are placeholders. | Connor (town page, leases); Haan (Fair Rent Check, Compare Towns) | Nov 23 |
-| Database and APIs | 7 models + migrations, JSON API, Census/HUD/Scorecard/RentCast commands done. Run them live with our keys and check results. Add RentCheck model. | Connor (data, API); Haan (RentCheck model) | Nov 16 |
-| AI integration | Planned (section 3). Rent model, then listing parser. | Haan (rent model); Connor (listing parser) | Nov 30 |
-| Evaluation and testing | 41 unit tests pass. AI evaluation, 5 test table, failure analysis, one improvement still to do. | Both | Dec 4 |
-| Deployment | Production settings and step-by-step guide (`DEPLOY.md`) done. Deploy to PythonAnywhere free tier (allows Census and Groq API calls, keeps SQLite between restarts). | Connor | Nov 30 |
-| Documentation | README done. README_AI, cost comparison, scaling notes to do. | Both | Dec 7 |
+| Django core features | Town page, search, login, and lease form done. Fair Rent Check and Compare Towns pages are placeholders. | Connor (town page, leases), Haan (Fair Rent Check, Compare Towns) | Nov 23 |
+| Database and APIs | Models, internal API, and outside API commands done. Census, HUD, and Scorecard loaded. RentCast next. | Connor (data, API), Haan (Fair Rent Check model) | Nov 16 |
+| AI integration | Planned (section 3). Rent model first, then listing reader. | Haan (rent model), Connor (listing reader) | Nov 30 |
+| Evaluation and testing | 46 tests pass. AI testing, failure cases, and one improvement still to do. | Both | Dec 4 |
+| Deployment | Settings and setup guide done (`DEPLOY.md`). Deploy to PythonAnywhere. | Connor | Nov 30 |
+| Documentation | README done. AI docs, cost comparison, and scaling notes to do. | Both | Dec 7 |
