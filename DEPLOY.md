@@ -44,10 +44,10 @@ Deploy in the last week of November so it stays up through grading.
    # upload data/town_data.json in the Files tab, then in the PythonAnywhere console
    python manage.py loaddata data/town_data.json
    ```
-4. **Web tab** → Add a new web app → **Manual configuration** → Python 3.12.
+4. On the **Web** tab, click Add a new web app, choose Manual configuration, then Python 3.12.
    - **Virtualenv:** `/home/<username>/.virtualenvs/rentcheck`
    - **Source code:** `/home/<username>/rentcheck`
-   - **Static files:** URL `/static/` → Directory `/home/<username>/rentcheck/staticfiles`
+   - **Static files:** URL `/static/`, directory `/home/<username>/rentcheck/staticfiles`
    - **Force HTTPS:** on
 5. Click the **WSGI configuration file** link and replace everything with:
    ```python

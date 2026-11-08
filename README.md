@@ -1,91 +1,82 @@
 # RentCheck
 
-**Is your college rent fair?** RentCheck tracks rent in college towns over time, shows it next to enrollment, and collects what students actually paid on past leases so the next student has something to compare against before signing.
+**Is your college rent fair?** RentCheck shows how rent has changed in college towns, next to how many students live there. Students can also share what they actually paid on past leases, so the next student has something to compare against.
 
 INFO 490, Fall 2026, Team 19: Connor Slattery (cslat), Haaneol Kang (haaneol2).
 
 ## Features
 
-| Feature | Status (first draft) | Owner |
+| Feature | Status | Owner |
 |---|---|---|
-| Town search and town page: rent trend by unit size next to enrollment | Working | Connor |
-| Past lease form: logged-in students share what they paid (create, edit, delete) | Working | Connor |
-| JSON API: `/api/towns/` and `/api/towns/<slug>/` | Working | Connor |
-| Fair Rent Check: enter a listing, get low / fair / high with similar places (AI feature) | In progress | Haan |
-| Compare Towns: up to 4 towns, chart, sortable table, CSV | In progress | Haan |
+| Town search and town pages (rent over time, enrollment) | Working | Connor |
+| Past lease form (add, edit, delete your own) | Working | Connor |
+| JSON API for towns | Working | Connor |
+| Fair Rent Check (AI feature) | In progress | Haan |
+| Compare Towns (chart, table, CSV) | In progress | Haan |
 
 ## Setup
 
-Requires Python 3.11 or newer.
+You need Python 3.11 or newer.
 
 ```bash
-git clone <repo-url>
-cd rentcheck
+git clone https://github.com/S1attaro/RentCheck.git
+cd RentCheck
 python -m venv .venv
 .venv\Scripts\activate            # Mac/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 copy .env.example .env            # Mac/Linux: cp .env.example .env
 python manage.py migrate
-python manage.py seed_demo        # towns + placeholder numbers
-python manage.py refresh_data     # real data from every API with a key in .env (Census needs none)
-python manage.py createsuperuser  # optional, for /admin
+python manage.py seed_demo        # adds the towns with placeholder numbers
+python manage.py refresh_data     # pulls real data (see "Data" below)
 python manage.py runserver
 ```
 
-Open http://127.0.0.1:8000.
+Then open http://127.0.0.1:8000.
+
+To use the admin page at /admin, run `python manage.py createsuperuser` first.
 
 ## Environment variables
 
-Set in `.env` (never commit it). See `.env.example`.
+These go in the `.env` file. Never commit `.env`, since it has API keys. `.env.example` shows the format.
 
-| Name | What it does |
+| Name | What it's for |
 |---|---|
-| `DJANGO_SECRET_KEY` | Django secret key. Required in production. |
-| `DJANGO_DEBUG` | `True` for local work, `False` when deployed. |
-| `DJANGO_ALLOWED_HOSTS` | Comma separated hosts, e.g. `127.0.0.1,localhost` |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | The deployed site's URL, e.g. `https://name.pythonanywhere.com` |
-| `RENTCAST_API_KEY` | RentCast key. `RENTCAST_MONTHLY_LIMIT` caps calls (default 45). |
-| `HUD_API_TOKEN` | HUD Fair Market Rent API token. |
-| `SCORECARD_API_KEY` | College Scorecard (api.data.gov) key. |
-| `CENSUS_API_KEY` | Optional. Only needed if you hit the Census API's limit. |
-| `GROQ_API_KEY` | For the AI features (not used yet). |
+| `DJANGO_SECRET_KEY` | Django's secret key. Needed when deployed. |
+| `DJANGO_DEBUG` | `True` on your computer, `False` when deployed. |
+| `DJANGO_ALLOWED_HOSTS` | Which sites can serve the app, like `127.0.0.1,localhost`. |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | The deployed site's URL. |
+| `HUD_API_TOKEN` | HUD rent data. |
+| `SCORECARD_API_KEY` | College Scorecard enrollment data (from api.data.gov). |
+| `RENTCAST_API_KEY` | RentCast listings. |
+| `CENSUS_API_KEY` | Optional. Census works without it. |
+| `GROQ_API_KEY` | For the AI feature (not used yet). |
 
 ## Data
 
-All free. Keys go in `.env` (see `.env.example`).
+All sources are free.
 
-| Source | What we use | Sign up | Command |
-|---|---|---|---|
-| **Census Bureau, ACS 5-year** (B25031, B25003, B14001) | Median rent by bedroom count, 2015-2024; college students living in town | No key needed (optional key: https://api.census.gov/data/key_signup.html) | `fetch_census` |
-| **HUD Fair Market Rents** | Rent by bedroom count for the county, or the campus ZIPs where HUD has ZIP-level numbers | https://www.huduser.gov/hudapi/public/register (pick Fair Market Rent) | `fetch_hud --years 2021-2027` |
-| **College Scorecard** (Dept. of Education) | Official undergrad enrollment by year; the school's own off-campus room and board estimate | https://collegescorecard.ed.gov/data/api-documentation/ | `fetch_scorecard` |
-| **RentCast** | Current median asking rent by bedroom (12 months of history) and up to 500 active listings per town | https://app.rentcast.io/app/api (free: 50 calls/month) | `fetch_rentcast` |
-| **Zillow ZORI** (optional file) | Monthly typical asking rent, all sizes | Download the City ZORI CSV from https://www.zillow.com/research/data/ | `import_zori <file>` |
-| **Students** | What they paid vs. the listed price, unit details | - | The past lease form |
+| Source | What we get | Sign up |
+|---|---|---|
+| Census Bureau | Rent by bedroom count (2015 to 2024) and college students living in each town | No key needed. Optional key: https://api.census.gov/data/key_signup.html |
+| HUD | The government's fair rent by bedroom count for each county | https://www.huduser.gov/hudapi/public/register |
+| College Scorecard | Enrollment at each school, and the school's own estimate of off-campus housing cost | https://collegescorecard.ed.gov/data/api-documentation/ |
+| RentCast | Current listings and asking rents near campus | https://app.rentcast.io/app/api |
+| Zillow (optional) | Monthly asking rents, as a downloaded file | https://www.zillow.com/research/data/ |
+| Students | What they paid on past leases | The lease form on the site |
 
-Run everything that has a key:
+`python manage.py refresh_data` pulls from every source that has a key in `.env`.
 
-```bash
-python manage.py refresh_data                  # Census, HUD, Scorecard, RentCast
-python manage.py refresh_data --skip-rentcast  # save RentCast's monthly calls
-python manage.py fetch_rentcast --dry-run      # see how many RentCast calls a run would use
-```
-
-**RentCast limit.** The free plan is 50 calls a month. `fetch_rentcast` uses 2 calls per town (26 for all 13) and refuses to go past `RENTCAST_MONTHLY_LIMIT` (default 45). So run it about once a month. Every outside API call is logged in the `ApiCall` table (visible in /admin) without keys.
-
-The towns we track are in `data/towns.csv`: names for each source, county, campus ZIPs, and the school's IPEDS ID. To add a town, add a row and run `python manage.py load_towns`. `fetch_scorecard` prints the school name it matched so a wrong ID is easy to spot.
-
-`seed_demo` fills every town with **demo** numbers so the site works offline. Demo numbers are ignored as soon as a town has real data, and pages show a yellow warning while they're in use.
-
-**How the numbers are picked** (`towns/stats.py`): the headline "typical rent" comes from the first source that has data in this order: Zillow, RentCast, Census, HUD. The town page also shows every source side by side, since they measure different things (asking rent vs. what renters pay vs. a government floor).
-
-**Data quality:** lease reports under 40% or over 2.5x the town's typical rent are saved but left out of medians. Town medians stay hidden until 3 or more students report.
+A few things to know:
+- **RentCast** only allows 50 free calls a month. A full run uses 26. The app stops before it goes over, and `python manage.py fetch_rentcast --dry-run` shows how many calls a run would use.
+- **Towns** are listed in `data/towns.csv`. To add one, add a row and run `python manage.py load_towns`.
+- **Placeholder numbers** from `seed_demo` are only used until real data is loaded. Pages show a yellow warning while they're in use.
+- **Lease reports** that look like typos (way above or below the town's typical rent) are saved but left out of the averages. Town averages stay hidden until at least 3 students report.
 
 ## How to use it
 
-1. Search a town or school in the top bar, or pick one from the home page table.
-2. On the town page, switch unit size to see rent for that size.
-3. Sign up, then go to **My Leases** to share a past lease. You can edit or delete your own reports. Others only see a town's median, and only once 3 or more students have reported.
+1. Search for a town or school, or pick one from the home page.
+2. On a town page, change the unit size to see rent for that size.
+3. Sign up, then go to **My Leases** to share a past lease. Only you can see your own reports.
 
 ## API
 
@@ -94,11 +85,11 @@ GET /api/towns/?q=illinois
 GET /api/towns/urbana-champaign/?bedrooms=2
 ```
 
-Returns typical rent, change vs. a year ago, rent over time for each source, students by year, current listing count and median, and the lease report summary. Errors come back as JSON with a 400 or 404 status.
+Returns the town's typical rent, how much it changed in a year, rent over time from each source, enrollment, and the lease report totals.
 
 ## Hosting
 
-PythonAnywhere free tier. Steps are in `DEPLOY.md`.
+We plan to host on PythonAnywhere's free plan. Steps are in `DEPLOY.md`.
 
 ## Tests
 
@@ -109,19 +100,18 @@ python manage.py test
 ## Project layout
 
 ```
-rentcheck/   settings and root URLs
-core/        home page, sign up
-towns/       Town, RentPoint, EnrollmentPoint, Listing, ApiCall, DataImport models,
-             town page, JSON API, API clients (clients.py), fetch_* commands
-leases/      LeaseReport model, past lease form (login required)
+rentcheck/   settings and main URLs
+core/        home page and sign up
+towns/       town data, town pages, the JSON API, and the data commands
+leases/      the past lease form
 checks/      Fair Rent Check (Haan)
 compare/     Compare Towns (Haan)
-templates/   base.html and shared includes
-static/      CSS and Chart.js
-data/        towns.csv (towns we track), enrollment template
-docs/        first draft write-up (scope, AI plan, roadmap)
+templates/   shared page layout
+static/      CSS and the chart library
+data/        the list of towns we track
+docs/        first draft write-up
 ```
 
 ## AI
 
-See `docs/FIRST_DRAFT.md` section 3 for the AI plan. A full `README_AI.md` comes with the final submission.
+The AI plan is in `docs/FIRST_DRAFT.md`, section 3. A full `README_AI.md` comes with the final submission.

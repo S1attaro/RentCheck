@@ -28,18 +28,15 @@ Compare Towns (up to 4 towns, chart, table, CSV) stays as a fourth, smaller feat
 
 ## 2. What works now
 
-The repo is a Django project with five apps: `core`, `towns`, `leases`, `checks`, and `compare`.
+The repo is a Django project with five apps: `core`, `towns`, `leases`, `checks`, and `compare`. There are 7 models. `RentPoint`, `EnrollmentPoint`, and `Listing` each link to `Town`, and `LeaseReport` links to both `Town` and the user.
 
-- **Models.** 7 models. `RentPoint`, `EnrollmentPoint`, and `Listing` each link to `Town`. `LeaseReport` links to `Town` and to the user.
-- **Main workflow.** A student signs up, fills out the past lease form, and saves it. It shows up on their My Leases page, where they can edit or delete it. Once a town has 3 reports, the town page shows the median.
-- **Views and templates.** Function-based views for the town pages and API. Class-based views for the lease pages. Every page extends `base.html`.
-- **Login.** Sign up, log in, and log out work. Lease pages need a login. Users can only see and change their own reports.
-- **Internal API.** `/api/towns/` and `/api/towns/<slug>/` return JSON. The town page charts load from it.
-- **Outside APIs.** Commands pull data from Census, HUD, College Scorecard, and RentCast and save it to the database. One command, `refresh_data`, runs them all. RentCast's free plan is 50 calls a month, so the app stops before it hits the limit.
-- **Data features.** Town search, rent charts from every source, a table comparing the sources, and enrollment charts.
-- **Data quality.** Demo numbers are only used until real data is loaded. Lease reports that look like typos (way off the town's typical rent) are kept but left out of the averages.
-- **Tests.** 46 tests, all passing.
-- **Live data.** We ran Census, HUD, and College Scorecard for all 13 towns on Nov 8. All 13 schools matched. RentCast is set up and waiting on its key.
+The main workflow is the past lease form. A student signs up, fills out the form, and saves it. It shows up on their My Leases page, where they can edit or delete it. Lease pages need a login, and users can only see and change their own reports. Once a town has 3 reports, the town page shows the median.
+
+The town pages use function-based views and the lease pages use class-based views. Every page extends `base.html`. We also have an internal JSON API at `/api/towns/`, and the town page charts load their data from it.
+
+For outside data, we wrote commands that pull from Census, HUD, College Scorecard, and RentCast and save it to the database. `refresh_data` runs all of them. RentCast's free plan only allows 50 calls a month, so the app stops before it hits that. On Nov 8 we ran Census, HUD, and College Scorecard for all 13 towns, and all 13 schools matched. RentCast is set up and waiting on its key.
+
+The town page has search, rent charts from each source, a table comparing the sources, and enrollment charts. Demo numbers are only used until real data is loaded. Lease reports that look like typos are kept but left out of the averages. There are 46 tests and they all pass.
 
 Fair Rent Check and Compare Towns have their pages and links set up. Haan is building them.
 
