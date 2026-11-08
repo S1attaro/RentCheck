@@ -1,0 +1,22 @@
+{% load humanize %}
+<div class="table-scroll">
+<table class="table">
+  <thead>
+    <tr><th>Town</th><th>School</th><th class="num">Typical rent</th><th class="num">1-year change</th><th class="num">College students</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        <td><a href="{{ row.url }}"><strong>{{ row.name }}</strong>, {{ row.state }}</a></td>
+        <td class="muted">{{ row.university }}</td>
+        <td class="num">{% if row.typical_rent %}${{ row.typical_rent|floatformat:0|intcomma }}{% else %}<span class="muted">No data</span>{% endif %}</td>
+        <td class="num">{% if row.yearly_change_pct is not None %}<span class="{% if row.yearly_change_pct > 0 %}up{% else %}down{% endif %}">{% if row.yearly_change_pct > 0 %}+{% endif %}{{ row.yearly_change_pct }}%</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td class="num">{% if row.students %}{{ row.students|intcomma }}{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td>{% if row.is_demo %}<span class="badge">demo</span>{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6" class="empty">No towns found{% if query %} for "{{ query }}"{% endif %}. Try a town name, a school, or a state like IL.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

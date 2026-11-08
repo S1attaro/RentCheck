@@ -1,0 +1,10 @@
+<div class="field{% if field.errors %} has-error{% endif %}{% if field.field.widget.input_type == 'checkbox' %} checkbox{% endif %}">
+  {% if field.field.widget.input_type == 'checkbox' %}
+    {{ field }} <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% else %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    <div class="control">{{ field }}</div>
+  {% endif %}
+  {% for e in field.errors %}<div class="error-text" role="alert">{{ e }}</div>{% endfor %}
+  {% if field.help_text %}<div class="muted small hint">{{ field.help_text|safe }}</div>{% endif %}
+</div>

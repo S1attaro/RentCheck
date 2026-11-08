@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Towns{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>College towns</h1>
+  {% if query %}<p class="muted">Results for "{{ query }}" ({{ rows|length }}). <a href="{% url 'towns:list' %}">Clear</a></p>{% endif %}
+  {% include "includes/town_table.html" %}
+</section>
+{% endblock %}

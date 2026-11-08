@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load humanize static %}
+{% block title %}{{ town.name }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="crumbs"><a href="{% url 'towns:list' %}">Towns</a> / {{ town.name }}</p>
+    <h1>{{ town.name }}, {{ town.state }}</h1>
+    <p class="muted">{{ town.university }}</p>
+  </div>
+  <form method="get" class="inline-form">
+    <label for="bedrooms">Unit size</label>
+    <select name="bedrooms" id="bedrooms" onchange="this.form.submit()">
+      <option value="">All sizes</option>
+      {% for value, label in bedroom_choices %}
+        <option value="{{ value }}" {% if bedrooms == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit">Go</button></noscript>
+  </form>
+</section>
+
+{% if summary.is_demo %}
+  <div class="flash warning">These numbers are demo placeholders, not real data. Run <code>python manage.py refresh_data</code> to load real ones.</div>
+{% elif summary.size_fallback %}
+  <div class="flash">No data for this unit size yet, so these numbers are for all sizes.</div>
+{% endif %}
+
+<section class="stats">
+  <div class="stat">
+    <div class="muted small">Typical rent{% if summary.bedrooms_used is not None %}, {{ summary.bedrooms_used }} bed{% endif %}</div>
+    <div class="big">{% if summary.typical_rent %}${{ summary.typical_rent|floatformat:0|intcomma }}{% else %}-{% endif %}</div>
+    <div class="muted small">{{ summary.source_label }}{% if summary.latest_month %}, {{ summary.latest_month }}{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="muted small">Change vs. a year earlier</div>
+    <div class="big {% if summary.yearly_change_pct > 0 %}up{% elif summary.yearly_change_pct is not None %}down{% endif %}">
+      {% if summary.yearly_change_pct is not None %}{% if summary.yearly_change_pct > 0 %}+{% endif %}{{ summary.yearly_change_pct }}%{% else %}-{% endif %}
+    </div>
+    {% if summary.yearly_change_dollars %}<div class="muted small">{% if summary.yearly_change_dollars > 0 %}${{ summary.yearly_change_dollars|intcomma }}/month more{% else %}${{ summary.yearly_change_dollars|stringformat:"d"|slice:"1:" }}/month less{% endif %}, {{ summary.change_source_label }}</div>{% endif %}
+  </div>
+  <div class="stat">
+    <div class="muted small">What students say they paid</div>
+    {% if reported.enough %}
+      <div class="big">${{ reported.median_unit_rent|floatformat:0|intcomma }}</div>
+      <div class="muted small">median of {{ reported.count }} leases{% if reported.median_paid_vs_asking is not None %}, ${{ reported.median_paid_vs_asking }} vs. listed price{% endif %}</div>
+    {% else %}
+      <div class="big muted">-</div>
+      <div class="muted small">{{ reported.count }} of {{ reported.min_reports }} reports needed. <a href="{% url 'leases:new' %}?town={{ town.slug }}">Add yours</a></div>
+    {% endif %}
+  </div>
+  {% if summary.school_offcampus_cost %}
+  <div class="stat">
+    <div class="muted small">The school's own estimate</div>
+    <div class="big">${{ summary.school_offcampus_monthly|intcomma }}<span class="unit">/mo</span></div>
+    <div class="muted small">${{ summary.school_offcampus_cost|intcomma }} a year for off-campus room and board, over 9 months</div>
+  </div>
+  {% endif %}
+</section>
+
+<section class="charts">
+  <div class="card chart-card">
+    <h2>Rent over time</h2>
+    <div class="chart-box"><canvas id="rentChart" aria-label="Rent over time by source" role="img"></canvas></div>
+    <p class="muted small source">Each line is a different source. They measure different things, so they won't match. The table below explains each one.</p>
+  </div>
+  <div class="card chart-card">
+    <h2>Students</h2>
+    <div class="chart-box"><canvas id="enrollChart" aria-label="Students by year" role="img"></canvas></div>
+    <p class="muted small source"><strong>Enrolled</strong>: undergrads at the university. <strong>Living here</strong>: college students who live in town (undergrad and grad).</p>
+  </div>
+</section>
+<p id="chartError" class="flash error" hidden>Could not load chart data. Try refreshing the page.</p>
+
+{% if comparison %}
+<section class="card">
+  <h2>What each source says{% if bedrooms is not None %} ({{ bedrooms }} bed){% endif %}</h2>
+  <p class="muted small">If a listing is well above all of these, it's worth asking why.</p>
+  <div class="table-scroll">
+  <table class="table">
+    <thead><tr><th>Source</th><th class="num">Monthly rent</th><th>As of</th><th>What it means</th></tr></thead>
+    <tbody>
+      {% for row in comparison %}
+        <tr>
+          <td><strong>{{ row.label }}</strong></td>
+          <td class="num">${{ row.rent|floatformat:0|intcomma }}{% if row.all_sizes %}<div class="muted small">all sizes</div>{% endif %}</td>
+          <td>{{ row.as_of }}</td>
+          <td class="muted small">{{ row.note }}</td>
+        </tr>
+      {% endfor %}
+      {% if reported.enough %}
+        <tr>
+          <td><strong>RentCheck students</strong></td>
+          <td class="num">${{ reported.median_unit_rent|floatformat:0|intcomma }}</td>
+          <td>-</td>
+          <td class="muted small">What students on this site say they actually paid.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+{% if listings.count %}
+<section class="card">
+  <div class="page-head">
+    <h2>Listed now{% if bedrooms is not None %} ({{ bedrooms }} bed){% endif %}</h2>
+    <span class="muted small">{{ listings.count }} active listings, median ${{ listings.median_price|floatformat:0|intcomma }}. From RentCast.</span>
+  </div>
+  <div class="table-scroll">
+  <table class="table">
+    <thead><tr><th>Address</th><th>Type</th><th class="num">Beds</th><th class="num">Sq ft</th><th class="num">Rent</th><th class="num">Days listed</th></tr></thead>
+    <tbody>
+      {% for l in listings.rows %}
+        <tr>
+          <td>{{ l.address }}</td>
+          <td class="muted">{{ l.property_type|default:"-" }}</td>
+          <td class="num">{{ l.bedrooms|default_if_none:"-" }}</td>
+          <td class="num">{{ l.square_feet|default_if_none:"-"|intcomma }}</td>
+          <td class="num">${{ l.price|intcomma }}</td>
+          <td class="num">{{ l.days_on_market|default_if_none:"-" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card cta">
+  <div>
+    <h2>Paid a lease in {{ town.name }}?</h2>
+    <p class="muted">Share what you actually paid. Totals only show once {{ reported.min_reports }}+ students report, and we never ask for your address or unit.</p>
+  </div>
+  <div class="actions">
+    <a class="button" href="{% url 'leases:new' %}?town={{ town.slug }}">Share a past lease</a>
+    <a class="button secondary" href="{% url 'checks:index' %}">Check a listing</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/chart.umd.min.js' %}"></script>
+<script>
+  const apiUrl = "{% url 'api:town-detail' town.slug %}{% if bedrooms is not None %}?bedrooms={{ bedrooms }}{% endif %}";
+  const money = v => "$" + Math.round(v).toLocaleString();
+  const colors = { zillow: "#2563eb", rentcast: "#7c3aed", census: "#0d9488", hud: "#d97706", demo: "#9ca3af" };
+
+  fetch(apiUrl)
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(data => {
+      // One line per source on a real time axis, so monthly and yearly data line up.
+      const sources = Object.keys(data.rent_by_source);
+      const toX = m => { const [y, mo] = m.split("-").map(Number); return y + (mo - 1) / 12; };
+      const monthName = x => { const y = Math.floor(x + 1e-6); const mo = Math.round((x - y) * 12) + 1; return y + "-" + String(mo).padStart(2, "0"); };
+      new Chart(document.getElementById("rentChart"), {
+        type: "line",
+        data: {
+          datasets: sources.map(s => ({
+            label: data.source_labels[s],
+            data: data.rent_by_source[s].map(p => ({ x: toX(p.month), y: p.rent })),
+            borderColor: colors[s], backgroundColor: colors[s],
+            pointRadius: data.rent_by_source[s].length > 24 ? 0 : 3, tension: 0.2
+          }))
+        },
+        options: {
+          maintainAspectRatio: false,
+          interaction: { mode: "nearest", intersect: false },
+          plugins: { legend: { display: sources.length > 1, position: "bottom", labels: { boxWidth: 12 } },
+                     tooltip: { callbacks: { title: items => monthName(items[0].parsed.x),
+                                             label: c => c.dataset.label + ": " + money(c.parsed.y) } } },
+          scales: { y: { ticks: { callback: money } },
+                    x: { type: "linear", ticks: { stepSize: 1, callback: v => Number.isInteger(v) ? v : "" } } }
+        }
+      });
+
+      const names = { ipeds: "Enrolled", census: "Living here", demo: "Demo" };
+      const enrollColors = { ipeds: "#2563eb", census: "#94a3b8", demo: "#cbd5e1" };
+      const years = [...new Set(data.enrollment.map(p => p.year))].sort();
+      const groups = [...new Set(data.enrollment.map(p => p.source))];
+      new Chart(document.getElementById("enrollChart"), {
+        type: "bar",
+        data: {
+          labels: years,
+          datasets: groups.map(g => {
+            const byYear = Object.fromEntries(data.enrollment.filter(p => p.source === g).map(p => [p.year, p.students]));
+            return { label: names[g] || g, data: years.map(y => byYear[y] ?? null), backgroundColor: enrollColors[g], borderRadius: 3 };
+          })
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { display: groups.length > 1, position: "bottom", labels: { boxWidth: 12 } },
+                     tooltip: { callbacks: { label: c => c.dataset.label + ": " + c.parsed.y.toLocaleString() } } },
+          scales: { y: { ticks: { callback: v => v.toLocaleString() } } }
+        }
+      });
+    })
+    .catch(() => { document.getElementById("chartError").hidden = false; });
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Secrets
+.env
+
+# Data downloads and model files
+data/raw/
+
+*.bin
+*.safetensors
+*.pt
+*.pkl
+*.joblib
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,14 @@
+slug,name,state,university,zillow_names,census_places,county,zip_codes,scorecard_id
+urbana-champaign,Urbana-Champaign,IL,University of Illinois Urbana-Champaign,"Champaign,Urbana","Champaign city,Urbana city",Champaign County,"61820,61801",145637
+bloomington-in,Bloomington,IN,Indiana University Bloomington,Bloomington,Bloomington city,Monroe County,"47408,47401",151351
+west-lafayette,West Lafayette,IN,Purdue University,"West Lafayette,Lafayette","West Lafayette city,Lafayette city",Tippecanoe County,47906,243780
+madison,Madison,WI,University of Wisconsin-Madison,Madison,Madison city,Dane County,"53715,53703",240444
+ann-arbor,Ann Arbor,MI,University of Michigan,Ann Arbor,Ann Arbor city,Washtenaw County,48104,170976
+iowa-city,Iowa City,IA,University of Iowa,Iowa City,Iowa City city,Johnson County,52240,153658
+state-college,State College,PA,Penn State University Park,State College,State College borough,Centre County,16801,214777
+columbia-mo,Columbia,MO,University of Missouri,Columbia,Columbia city,Boone County,65201,178396
+lawrence,Lawrence,KS,University of Kansas,Lawrence,Lawrence city,Douglas County,66044,155317
+boulder,Boulder,CO,University of Colorado Boulder,Boulder,Boulder city,Boulder County,80302,126614
+gainesville,Gainesville,FL,University of Florida,Gainesville,Gainesville city,Alachua County,"32601,32608",134130
+college-station,College Station,TX,Texas A&M University,College Station,College Station city,Brazos County,77840,228723
+ithaca,Ithaca,NY,Cornell University,Ithaca,Ithaca city,Tompkins County,14850,190415

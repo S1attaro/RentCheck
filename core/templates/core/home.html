@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Is your college rent fair?</h1>
+  <p>Check a listing against what rent really looks like in your college town, and see what other students actually paid.</p>
+  <form class="hero-search" action="{% url 'towns:list' %}" method="get">
+    <input type="search" name="q" placeholder="Try Champaign, Purdue, or WI" aria-label="Search towns">
+    <button type="submit">Find my town</button>
+  </form>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <div class="muted small">College towns tracked</div>
+    <div class="big">{{ town_count }}</div>
+  </div>
+  <div class="stat">
+    <div class="muted small">Leases shared by students</div>
+    <div class="big">{{ lease_count|intcomma }}</div>
+  </div>
+  <div class="stat">
+    <div class="muted small">Latest data update</div>
+    {% if last_import %}
+      <div class="big small-big">{{ last_import.get_source_display }}</div>
+      <div class="muted small">updated {{ last_import.finished_at|date:"M j, Y" }}</div>
+    {% else %}
+      <div class="big small-big">Demo data</div>
+      <div class="muted small">run <code>refresh_data</code> for real numbers</div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="steps">
+  <div class="step"><span class="step-num">1</span><div><strong>Look up your town.</strong> Rent trends by unit size, next to how many college students live there.</div></div>
+  <div class="step"><span class="step-num">2</span><div><strong>Check a listing.</strong> Get a low, fair, or high rating with similar places.</div></div>
+  <div class="step"><span class="step-num">3</span><div><strong>Share what you paid.</strong> Anonymous. Helps the next student know the real price.</div></div>
+</section>
+
+<section class="card">
+  <div class="page-head">
+    <h2>College towns</h2>
+    <a href="{% url 'compare:index' %}">Compare towns</a>
+  </div>
+  {% include "includes/town_table.html" %}
+</section>
+{% endblock %}

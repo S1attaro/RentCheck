@@ -1,0 +1,52 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}RentCheck{% endblock %} | RentCheck</title>
+  <meta name="description" content="Check if your college town rent is fair. Rent trends, enrollment, and what students actually paid.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Cpath d='M8 17l8-7 8 7v8H8z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}?v=2">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="{% url 'core:home' %}"><span class="logo">&#8962;</span> RentCheck</a>
+      <form class="search" action="{% url 'towns:list' %}" method="get">
+        <input type="search" name="q" placeholder="Search a college town or school" value="{{ request.GET.q }}" aria-label="Search towns">
+        <button type="submit">Search</button>
+      </form>
+      <div class="account">
+        {% if user.is_authenticated %}
+          <span class="muted">{{ user.username }}</span>
+          <form action="{% url 'logout' %}" method="post" class="inline">{% csrf_token %}<button class="link">Log out</button></form>
+        {% else %}
+          <a href="{% url 'login' %}">Log in</a>
+          <a href="{% url 'core:signup' %}">Sign up</a>
+        {% endif %}
+      </div>
+    </div>
+    <nav class="wrap tabs">
+      {% with name=request.resolver_match.namespace %}
+      <a href="{% url 'towns:list' %}" class="{% if name == 'towns' %}active{% endif %}">Towns</a>
+      <a href="{% url 'checks:index' %}" class="{% if name == 'checks' %}active{% endif %}">Fair Rent Check</a>
+      <a href="{% url 'compare:index' %}" class="{% if name == 'compare' %}active{% endif %}">Compare Towns</a>
+      <a href="{% url 'leases:mine' %}" class="{% if name == 'leases' %}active{% endif %}">My Leases</a>
+      {% endwith %}
+    </nav>
+  </header>
+
+  <main class="wrap">
+    {% for message in messages %}
+      <div class="flash {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="wrap muted small">
+    RentCheck &middot; INFO 490 Team 19 &middot; Data: U.S. Census Bureau, HUD, College Scorecard, RentCast, Zillow Research, and student reports. Numbers marked "demo" are placeholders.
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}My leases{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="page-head">
+    <div>
+      <h1>My lease reports</h1>
+      <p class="muted">Only you can see this list. Other people only see totals for each town.</p>
+    </div>
+    <a class="button" href="{% url 'leases:new' %}">Share a past lease</a>
+  </div>
+  <div class="table-scroll">
+  <table class="table">
+    <thead>
+      <tr><th>Town</th><th>Type</th><th>Size</th><th>Paid</th><th>Listed</th><th>Started</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in reports %}
+        <tr>
+          <td><a href="{{ r.town.get_absolute_url }}">{{ r.town.name }}</a></td>
+          <td>{{ r.get_property_type_display }}</td>
+          <td>{{ r.get_bedrooms_display }}</td>
+          <td>${{ r.monthly_rent|intcomma }}{% if r.per_person %} <span class="muted small">per person</span>{% endif %}
+            {% if r.flagged %}<span class="badge" title="Far from the town's typical rent, so it's left out of averages">not counted</span>{% endif %}</td>
+          <td>{% if r.asking_rent %}${{ r.asking_rent|intcomma }}{% else %}<span class="muted">-</span>{% endif %}</td>
+          <td>{{ r.lease_start|date:"M Y" }}</td>
+          <td class="right nowrap">
+            <a href="{% url 'leases:edit' r.pk %}">Edit</a>
+            <a href="{% url 'leases:delete' r.pk %}" class="danger">Delete</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">You haven't shared any leases yet. It takes about a minute.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

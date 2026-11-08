@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit lease{% else %}Share a lease{% endif %}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>{% if object %}Edit lease report{% else %}Share a past lease{% endif %}</h1>
+  <p class="muted">Listings only show asking prices. Telling us what you really paid helps the next student. We never ask for names, addresses, or unit numbers.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="flash error">{% for e in form.non_field_errors %}{{ e }} {% endfor %}</div>
+    {% endif %}
+
+    <fieldset>
+      <legend>The basics</legend>
+      {% for field in form %}
+        {% if field.name in "town property_type bedrooms monthly_rent per_person asking_rent utilities_included lease_start lease_months" %}
+          {% include "includes/field.html" %}
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>More details</legend>
+      <p class="muted small">Optional, but these help the fair rent check compare similar places.</p>
+      {% for field in form %}
+        {% if field.name in "furnished square_feet walk_minutes" %}
+          {% include "includes/field.html" %}
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+
+    <button type="submit">{% if object %}Save changes{% else %}Submit{% endif %}</button>
+    <a href="{% url 'leases:mine' %}" class="button secondary">Cancel</a>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Create an account</h1>
+  <p class="muted">You only need an account to share a past lease. Pick any username. We don't ask for your name or email.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% include "includes/form.html" %}
+    <button type="submit">Sign up</button>
+  </form>
+</section>
+{% endblock %}
